@@ -33,16 +33,23 @@ class FNNDataset(data.Dataset):
         MAX_SENT_LEN = max(sent_lens)
 
         # get the GloVe embeddings
-        GloVe_embed = torch.stack([torch.stack([self.GloVe[word] if word in self.GloVe.stoi else self.GloVe[word.lower()] for word in sent + ['<pad>'] * (MAX_SENT_LEN - len(sent))]) for sent in article])
+        if self.GloVe is not None:
+            GloVe_embed = torch.stack([torch.stack([self.GloVe[word] if word in self.GloVe.stoi else self.GloVe[word.lower()] for word in sent + ['<pad>'] * (MAX_SENT_LEN - len(sent))]) for sent in article])
         # print(GloVe_embeddings.shape)
 
         # get the ELMo embeddings
-        ELMo_character_ids = batch_to_ids(article).to(DEVICE)
-        ELMo_embed = self.ELMo(ELMo_character_ids)['elmo_representations'][0]
+        if self.ELMo is not None:
+            ELMo_character_ids = batch_to_ids(article).to(DEVICE)
+            ELMo_embed = self.ELMo(ELMo_character_ids)['elmo_representations'][0]
         # print(ELMo_embeddings.shape)
 
         # concat the GloVe and ELMo embeddings
-        article_embed = torch.cat([GloVe_embed, ELMo_embed], dim=2)
+        if self.ELMo is not None and self.GloVe is not None:
+            article_embed = torch.cat([GloVe_embed, ELMo_embed], dim=2)
+        elif self.ELMo is not None:
+            article_embed = ELMo_embed
+        elif self.GloVe is not None:
+            article_embed = GloVe_embed
 
         return article_embed, sent_lens, label
 
