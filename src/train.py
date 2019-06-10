@@ -48,7 +48,7 @@ else:
     DEVICE = torch.device('cpu')
 
 ROOT_DIR = Path.cwd().parent
-LEARNING_RATE = 0.05
+LEARNING_RATE = 0.1
 MAX_EPOCHS = 10
 BATCH_SIZE_FN = 32
 NUM_CLASSES_FN = 2
@@ -110,6 +110,7 @@ def train():
     checkpoints_dir = Path(FLAGS.checkpoints_dir) / model_type / run_desc
     models_dir = Path(FLAGS.models_dir) / model_type / run_desc
     results_dir = Path(FLAGS.results_dir) / model_type / run_desc
+    learning_rate = LEARNING_RATE
 
     if not data_dir.exists():
         raise ValueError('Data directory does not exist')
@@ -213,6 +214,12 @@ def train():
         
         best_accuracy = torch.tensor(temp_val_acc).max().item()
         create_checkpoint(checkpoints_dir, epoch, model, optimizer, results, best_accuracy)
+        if (epoch+1) % 4 == 0 and epoch != 0:
+            learning_rate = learning_rate / 2
+            optimizer = optim.Adam(
+                    params=model.parameters(),
+                    lr=learning_rate)
+
 
     # save and plot the results
     save_results(results_dir, results, model)
