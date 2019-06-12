@@ -31,8 +31,8 @@ from torchtext.data import BucketIterator  # , Iterator
 import torch.utils.data as data
 from torchtext.vocab import GloVe
 
-from data import load_data
-from dataset import FNNDataset, PadSortBatchFNN, SNLIDataset, PadSortBatchSNLI
+#from data import load_data
+from dataset import FNNDataset, PadSortBatchFNN
 from models import HierarchicalAttentionNet
 from utils import (create_directories, load_latest_checkpoint, plot_results,
                    print_dataset_sizes, print_flags, print_model_parameters,
@@ -49,7 +49,7 @@ else:
 
 ROOT_DIR = Path.cwd().parent
 LEARNING_RATE = 0.1
-MAX_EPOCHS = 10
+MAX_EPOCHS = 20
 BATCH_SIZE_FN = 32
 NUM_CLASSES_FN = 2
 
@@ -81,7 +81,7 @@ def train_epoch_fn(train_iter, model, optimizer, loss_func_fn):
             print(f'Processed {step} FN batches.')
             print(f'Accuracy: {train_acc[len(train_acc)-1]}.')
         optimizer.zero_grad()
-        out = model(batch=articles, batch_dims=article_dims, task='FN')
+        out = model(batch=articles, batch_dims=article_dims)
         loss = loss_func_fn(out, labels)
         loss.backward()
         optimizer.step()
@@ -95,7 +95,7 @@ def eval_epoch_fn(val_iter, model, loss_func_fn):
     val_loss = 0.0
     for step, batch in enumerate(val_iter):
         articles, article_dims, labels = batch
-        out = model(batch=articles, batch_dims=article_dims, task='FN')
+        out = model(batch=articles, batch_dims=article_dims)
         loss = loss_func_fn(out, labels)
         val_loss += loss.item() * BATCH_SIZE_FN
         acc = (out.argmax(dim=1).to(DEVICE) == labels.to(DEVICE)).float().mean()
@@ -145,7 +145,7 @@ def train():
     FNN_DL = {}
 
     for path in ['train', 'val', 'test']:
-        FNN[path] = FNNDataset(data_dir / ('FNN_' + path + '.pkl'), GloVe_vectors, ELMO)
+        FNN[path] = FNNDataset(data_dir / ('FNN_' + path + '.pkl'), GloVe_vectors, ELMo)
         FNN_DL[path] = data.DataLoader(
                 dataset=FNN[path],
                 batch_size=BATCH_SIZE_FN,
@@ -164,8 +164,7 @@ def train():
     
     model = HierarchicalAttentionNet(input_dim=input_dim , 
                                      hidden_dim=WORD_HIDDEN_DIM, 
-                                     num_classes_task_fn=NUM_CLASSES_FN, 
-                                     embedding=None,  
+                                     num_classes=NUM_CLASSES_FN,  
                                      dropout=0).to(DEVICE)
     print('Working on: ', end='')
     print(DEVICE)
@@ -212,7 +211,7 @@ def train():
         results['val_accuracy'].append(val_acc_fn)
         print(results)
         
-        best_accuracy = torch.tensor(temp_val_acc).max().item()
+        best_accuracy = torch.tensor(val_acc_fn).max().item()
         create_checkpoint(checkpoints_dir, epoch, model, optimizer, results, best_accuracy)
         if (epoch+1) % 4 == 0 and epoch != 0:
             learning_rate = learning_rate / 2
@@ -259,8 +258,6 @@ if __name__ == '__main__':
                         help='Path of directory to store / load models')
     parser.add_argument('--results_dir', type=str, default=RESULTS_DIR_DEFAULT,
                         help='Path of directory to store results')
-    parser.add_argument('--data_percentage', type=float, default=DATA_PERCENTAGE_DEFAULT,
-                        help='Percentage of data to be used (for training, testing, etc.)')
     parser.add_argument('--run_desc', type=str, default=RUN_DESC_DEFAULT,
                         help='Run description, used to generate the subdirectory title')
     FLAGS, unparsed = parser.parse_known_args()

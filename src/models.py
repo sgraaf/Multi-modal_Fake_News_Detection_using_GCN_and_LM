@@ -38,3 +38,18 @@ class HierarchicalAttentionNet(nn.Module):
         out = self.softmax_classifier(doc_embeds)
 
         return out
+
+    def get_embeddings(self, batch, batch_dims, return_docs=True):
+
+        # apply dropout to the batch
+        batch_dropout = F.dropout(batch, p=self.dropout, training=self.training)
+
+        # get the sentence embeddings
+        sent_embeds = self.sent_attend(batch_dropout, batch_dims)
+
+        # get the document embeddings
+        doc_embeds = self.doc_attend(sent_embeds, batch_dims)
+        if return_docs:
+            return doc_embeds
+        else: 
+            return sent_embeds
