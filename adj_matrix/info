@@ -1,0 +1,5 @@
+setup path in .py file
+
+adj_matrix is of size (N x N), where 
+
+N = (number of unique users (35321) + number of unique buzzfeed articles (182) + number of unique poli articles (280))
