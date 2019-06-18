@@ -59,6 +59,7 @@ class GraphConvolutionalNetwork(nn.Module):
     """
     Implementation based on https://github.com/tkipf/pygcn/blob/master/pygcn/models.py
     """
+    
     def __init__(self, input_dim, hidden_dim, num_classes, dropout=0):
         super(GraphConvolutionalNetwork, self).__init__()
         self.input_dim = input_dim
@@ -77,6 +78,6 @@ class GraphConvolutionalNetwork(nn.Module):
         # apply dropout
         out = F.dropout(out, p=self.dropout, training=self.training)
         # forward pass through the second GC
-        out = self.log_softmax(self.gc2(x, adj), dim=1)
+        out = self.log_softmax(self.gc2(out, adj), dim=1)
         
         return out
