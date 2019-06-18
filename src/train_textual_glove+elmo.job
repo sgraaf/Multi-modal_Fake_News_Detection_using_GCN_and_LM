@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=SMNLS_JTL
+#SBATCH --job-name=PROJECTAI_GLOVE_ELMO
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=2
 #SBATCH --ntasks-per-node=1
@@ -21,4 +21,4 @@ source ../venv/bin/activate
 
 pip3 install torch torchtext numpy matplotlib pandas allennlp
 
-srun python3 train.py --model_type=glove --run_desc=only_glove
+srun python train.py --model_type=glove_and_elmo --run_desc=glove_and_elmo
