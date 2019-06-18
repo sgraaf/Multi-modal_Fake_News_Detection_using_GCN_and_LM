@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from encoders import DocAttentionRNN, SentAttentionRNN
+from modules import DocAttentionRNN, SentAttentionRNN, GraphConvolution
 
 
 class HierarchicalAttentionNet(nn.Module):
@@ -53,3 +53,30 @@ class HierarchicalAttentionNet(nn.Module):
             return doc_embeds
         else: 
             return sent_embeds
+
+
+class GraphConvolutionalNetwork(nn.Module):
+    """
+    Implementation based on https://github.com/tkipf/pygcn/blob/master/pygcn/models.py
+    """
+    def __init__(self, input_dim, hidden_dim, num_classes, dropout=0):
+        super(GraphConvolutionalNetwork, self).__init__()
+        self.input_dim = input_dim
+        self.hidden_dim = hidden_dim
+        self.num_classes = num_classes
+        self.dropout = dropout
+
+        self.gc1 = GraphConvolution(self.input_dim, self.hidden_dim)
+        self.relu = nn.ReLU()
+        self.gc2 = GraphConvolution(self.hidden_dim, self.output_dim)
+        self.log_softmax = nn.LogSoftmax()
+
+    def forward(self, x, adj):
+        # forward pass through the first GC
+        out = self.relu(self.gc1(x, adj))
+        # apply dropout
+        out = F.dropout(out, p=self.dropout, training=self.training)
+        # forward pass through the second GC
+        out = self.log_softmax(self.gc2(x, adj), dim=1)
+        
+        return out

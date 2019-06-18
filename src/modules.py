@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import math
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -123,3 +125,35 @@ class DocAttentionRNN(nn.Module):
         attended_sum = attended.sum(1, keepdim=True).squeeze(1)
 
         return attended_sum
+
+
+class GraphConvolution(nn.Module):
+    """
+    Simple GCN layer, similar to https://arxiv.org/abs/1609.02907
+    Implementation based on https://github.com/tkipf/pygcn/blob/master/pygcn/layers.py
+    """
+
+    def __init__(self, input_dim, output_dim, bias=True):
+        super(GraphConvolution, self).__init__()
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+        
+        self.weight = nn.Parameter(torch.FloatTensor(self.input_dim, self.output_dim))
+        self.bias = nn.Parameter(torch.FloatTensor(self.output_dim))
+
+        self.reset_parameters()
+
+    def forward(self, input, adj):
+        support = torch.mm(input, self.weight)
+        output = torch.spmm(adj, support) + self.bias
+        
+        return output 
+
+    def reset_parameters(self):
+        std = 1.0 / math.sqrt(self.weight.size(1))
+
+        self.weight.data.uniform_(-std, std)
+        self.bias.data.uniform_(-std, std)
+
+    def __repr__(self):
+        return f'{self.__class__.__name__} ({self.input_dim} -> {self.output_dim})'
