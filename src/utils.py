@@ -6,6 +6,8 @@ from os.path import getctime
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+import numpy as np
+import scipy.sparse as sp
 import torch
 from pandas import DataFrame as df
 from pandas import read_csv
@@ -255,3 +257,66 @@ def plot_results(results_dir, results, model):
 def create_directories(*args):
     for dir in args:
         dir.mkdir(parents=True, exist_ok=True)
+        
+        
+def load_mxs(adj_mx_file, features_mx_file, labels_mx_file):
+    """
+    Load and convert matrices.
+    Inspired by: https://github.com/tkipf/pygcn/blob/master/pygcn/utils.py
+    """
+    
+    print('Loading matrices...')
+    
+    # load the adjacency matrix
+    print(f'Loading adjacency matrix from file {adj_mx_file.fname}...')
+    adj_mx_sparse = sp.load_npz(adj_mx_file)
+    
+    # normalize and convert to FloatTensor
+    adj_mx_normalize = normalize_mx(adj_mx_sparse)
+    adj_ts = sparse_mx_to_sparse_ts(adj_mx_normalize)
+    
+    # load the features matrix
+    print(f'Loading features matrix from file {features_mx_file.fname}...')
+    features_list = pkl.load(open(features_mx_file, 'rb'))
+    features_mx = sp.vstack(features_list)
+    
+    # normalize and convert to FloatTensor
+    features_mx_normalize = normalize_mx(features_mx)
+    features_ts = torch.FloatTensor(np.array(features_mx_normalize.todense()))
+    
+    # load the labels matrix
+    print(f'Loading labels matrix from file {labels_mx_file.fname}...')
+    labels_mx = pkl.load(open(labels_mx_file, 'rb'))
+    
+    # filter out None and convert to LongTensor
+    labels_mx = [labels_mx[idx] for idx in np.where(labels_mx)[0]]
+    labels_ts = torch.LongTensor(labels_mx)    
+
+    return adj_ts, features_ts, labels_ts
+
+
+def sparse_mx_to_sparse_ts(sparse_mx):
+    """
+    Convert a scipy sparse matrix to a torch sparse tensor.
+    Inspired by: https://github.com/tkipf/pygcn/blob/master/pygcn/utils.py
+    """
+    sparse_mx = sparse_mx.tocoo().astype(np.float32)
+    indices = torch.from_numpy(np.vstack((sparse_mx.row, sparse_mx.col)).astype(np.int64))
+    values = torch.from_numpy(sparse_mx.data)
+    shape = torch.Size(sparse_mx.shape)
+    
+    return torch.sparse.FloatTensor(indices, values, shape)
+
+
+def normalize_mx(sparse_mx):
+    """
+    Row-normalize a scipy sparse matrix.
+    Inspired by: https://github.com/tkipf/pygcn/blob/master/pygcn/utils.py
+    """
+    r_sum = np.array(sparse_mx.sum(1), dtype=np.float32)
+    r_inv = np.power(r_sum, -1).flatten()
+    r_inv[np.isinf(r_inv)] = 0.
+    r_mat_inv = sp.diags(r_inv)
+    normalize_mx = r_mat_inv.dot(sparse_mx)
+    
+    return normalize_mx
