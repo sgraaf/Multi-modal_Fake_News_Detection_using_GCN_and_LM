@@ -320,3 +320,15 @@ def normalize_mx(sparse_mx):
     normalize_mx = r_mat_inv.dot(sparse_mx)
     
     return normalize_mx
+
+
+def accuracy(output, labels):
+    """
+    Compute the accuracy of your predictions.
+    Inspired by: https://github.com/tkipf/pygcn/blob/master/pygcn/utils.py
+    """
+    preds = output.max(1)[1].type_as(labels)
+    correct = preds.eq(labels).double()
+    correct = correct.sum()
+    
+    return correct / len(labels)
