@@ -12,8 +12,8 @@ import torch.nn as nn
 import torch.optim as optim
 
 from models import GraphConvolutionalNetwork
-from utils import (create_directories, print_flags, print_model_parameters,
-                   load_data)
+from utils import (accuracy, create_directories, create_checkpoint, print_flags, print_model_parameters,
+                   load_data, save_model, save_results)
 
 # defaults
 FLAGS = None
@@ -34,52 +34,17 @@ DROPOUT = 0.5
 np.random.seed(SEED)
 torch.manual_seed(SEED)
 
-MODEL_TYPE_DEFAULT = 'glove_and_elmo'
 DATA_DIR_DEFAULT = ROOT_DIR / 'data'
 CHECKPOINTS_DIR_DEFAULT = ROOT_DIR / 'output' / 'checkpoints'
 MODELS_DIR_DEFAULT = ROOT_DIR / 'output' / 'models'
 RESULTS_DIR_DEFAULT = ROOT_DIR / 'output' / 'results'
-RUN_DESC_DEFAULT = None
-    
-def train_epoch_fn(train_iter, model, optimizer, loss_func_fn):
-    train_loss = 0.0
-    train_acc = []
-    for step, batch in enumerate(train_iter):
-        articles, article_dims, labels = batch
-        if step % 50 == 0 and step != 0:
-            print(f'Processed {step} FN batches.')
-            print(f'Accuracy: {train_acc[len(train_acc)-1]}.')
-        optimizer.zero_grad()
-        out = model(batch=articles, batch_dims=article_dims)
-        loss = loss_func_fn(out, labels)
-        loss.backward()
-        optimizer.step()
-        train_loss += loss.item() * BATCH_SIZE_FN
-        acc = (out.argmax(dim=1).to(DEVICE) == labels.to(DEVICE)).float().mean()
-        train_acc.append(acc)
-    return train_loss, train_acc
-
-def eval_epoch_fn(val_iter, model, loss_func_fn):
-    val_acc = []
-    val_loss = 0.0
-    for step, batch in enumerate(val_iter):
-        articles, article_dims, labels = batch
-        out = model(batch=articles, batch_dims=article_dims)
-        loss = loss_func_fn(out, labels)
-        val_loss += loss.item() * BATCH_SIZE_FN
-        acc = (out.argmax(dim=1).to(DEVICE) == labels.to(DEVICE)).float().mean()
-        val_acc.append(acc)
-    return val_loss, val_acc
 
     
 def train():
-    model_type = FLAGS.model_type
-    run_desc = FLAGS.run_desc
     data_dir = Path(FLAGS.data_dir)
-    checkpoints_dir = Path(FLAGS.checkpoints_dir) / model_type / run_desc
-    models_dir = Path(FLAGS.models_dir) / model_type / run_desc
-    results_dir = Path(FLAGS.results_dir) / model_type / run_desc
-    learning_rate = LEARNING_RATE
+    checkpoints_dir = Path(FLAGS.checkpoints_dir)
+    models_dir = Path(FLAGS.models_dir)
+    results_dir = Path(FLAGS.results_dir)
 
     if not data_dir.exists():
         raise ValueError('Data directory does not exist')
@@ -105,7 +70,7 @@ def train():
     print_model_parameters(model)
 
     # set the criterion and optimizer
-    print('Initializing the criterion and optimizer)
+    print('Initializing the criterion and optimizer')
     criterion = nn.NLLLoss()
     optimizer = optim.Adam(
         params=model.parameters(),
@@ -123,8 +88,9 @@ def train():
     }    
 
     print(f'Starting training at epoch 0...')
-    for i in range(epoch, MAX_EPOCHS):
+    for i in range(0, MAX_EPOCHS):
         print(f'Epoch {i:0{len(str(MAX_EPOCHS))}}/{MAX_EPOCHS}:')
+        st = time()
         
         model.train()
         optimizer.zero_grad()
@@ -134,7 +100,7 @@ def train():
         
         # compute the training loss and accuracy
         train_loss = criterion(output, labels)
-        acc_train = accuracy(output, labels)
+        train_acc = accuracy(output, labels)
         
         # backpropogate the loss
         train_loss.backward()
@@ -146,28 +112,22 @@ def train():
         val_loss = criterion(output, labels)
         val_acc = accuracy(output, labels)
                 
+        # record results
         results['epoch'].append(i)
         results['train_loss'].append(train_loss.item())        
         results['train_acc'].append(train_acc)
         results['val_loss'].append(val_loss.item())
         results['val_acc'].append(val_acc)
-        print(results)
         
-        # <---------------------------------------- THIS IS HOW FAR I GOT
-        
-        best_accuracy = torch.tensor(val_acc_fn).max().item()
-        create_checkpoint(checkpoints_dir, epoch, model, optimizer, results, best_accuracy)
-        if (epoch+1) % 4 == 0 and epoch != 0:
-            learning_rate = learning_rate / 2
-            optimizer = optim.Adam(
-                    params=model.parameters(),
-                    lr=learning_rate)
+        # print update
+        print(f'Epoch: {i:02d} Train loss: {train_loss.item():0.4f} Train acc: {train_acc:0.4f} Val loss: {val_loss.item():0.4f} Val acc: {val_acc:0.4f} done in {time() - st} s')
 
+        # create a checkpoint
+        create_checkpoint(checkpoints_dir, i, model, optimizer, results)
 
-    # save and plot the results
-    save_results(results_dir, results, model)
+    # save the model and results
     save_model(models_dir, model)
-    plot_results(results_dir, results, model)
+    save_results(results_dir, results, model)
 
 
 
@@ -192,8 +152,6 @@ def main():
 if __name__ == '__main__':
     # cli arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model_type', type=str, default=MODEL_TYPE_DEFAULT,
-                        help='Input mode (i.e: glove, elmo or glove_and_elmo)')
     parser.add_argument('--data_dir', type=str, default=DATA_DIR_DEFAULT,
                         help='Path of directory where the data is stored')
     parser.add_argument('--checkpoints_dir', type=str, default=CHECKPOINTS_DIR_DEFAULT,
@@ -202,8 +160,6 @@ if __name__ == '__main__':
                         help='Path of directory to store / load models')
     parser.add_argument('--results_dir', type=str, default=RESULTS_DIR_DEFAULT,
                         help='Path of directory to store results')
-    parser.add_argument('--run_desc', type=str, default=RUN_DESC_DEFAULT,
-                        help='Run description, used to generate the subdirectory title')
     FLAGS, unparsed = parser.parse_known_args()
 
     main()
