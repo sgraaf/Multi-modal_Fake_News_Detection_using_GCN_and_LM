@@ -9,8 +9,6 @@ path = 'path'
 #import the data
 train = pd.read_csv(path)
 
-#delete base for dummies (otherwise intercept is linear combination)
-
 def lgb_runner(folds, num_folds, parameters, train, target):
     validation_preds = np.zeros((len(train)))
     train_preds = np.zeros((len(train)))
