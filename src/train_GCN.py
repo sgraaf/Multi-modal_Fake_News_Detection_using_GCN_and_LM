@@ -57,7 +57,18 @@ def train():
     adj_file = data_dir / 'adj_matrix.npz'
     features_file = data_dir / 'features_matrix.pkl'
     labels_file = data_dir / 'labels_matrix.pkl'
-    adj, features, labels = load_data(adj_file, features_file, labels_file)
+    adj, features, labels, splits_dict = load_data(adj_file, features_file, labels_file)
+    train_idxs = splits_dict['train']
+    val_idxs = splits_dict['val']
+    test_idxs = splits_dict['test']
+    
+    # send to device
+    adj.to(DEVICE)
+    features.to(DEVICE)
+    labels.to(DEVICE)
+    train_idxs.to(DEVICE)
+    val_idxs.to(DEVICE)
+    test_idxs.to(DEVICE)
 
     # initialize the model, according to the model type
     print('Initializing the model...')
@@ -99,8 +110,8 @@ def train():
         output = model(features, adj)
         
         # compute the training loss and accuracy
-        train_loss = criterion(output, labels)
-        train_acc = accuracy(output, labels)
+        train_loss = criterion(output[train_idxs], labels[train_idxs])
+        train_acc = accuracy(output[train_idxs], labels[train_idxs])
         
         # backpropogate the loss
         train_loss.backward()
@@ -109,8 +120,8 @@ def train():
         # evaluate
         model.eval()
         output = model(features, adj)
-        val_loss = criterion(output, labels)
-        val_acc = accuracy(output, labels)
+        val_loss = criterion(output[val_idxs], labels[val_idxs])
+        val_acc = accuracy(output[val_idxs], labels[val_idxs])
                 
         # record results
         results['epoch'].append(i)

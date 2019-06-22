@@ -259,7 +259,7 @@ def create_directories(*args):
         dir.mkdir(parents=True, exist_ok=True)
         
         
-def load_mxs(adj_mx_file, features_mx_file, labels_mx_file):
+def load_mxs(adj_mx_file, features_mx_file, labels_mx_file, splits_dict_file):
     """
     Load and convert matrices.
     Inspired by: https://github.com/tkipf/pygcn/blob/master/pygcn/utils.py
@@ -290,9 +290,17 @@ def load_mxs(adj_mx_file, features_mx_file, labels_mx_file):
     
     # filter out None and convert to LongTensor
     labels_mx = [labels_mx[idx] for idx in np.where(labels_mx)[0]]
-    labels_ts = torch.LongTensor(labels_mx)    
+    labels_ts = torch.LongTensor(labels_mx)  
+    
+    # load the splits dict
+    print(f'Loading splits dict from file {splits_dict_file.fname}...')
+    splits_dict = pkl.load(open(splits_dict_file, 'rb'))
 
-    return adj_ts, features_ts, labels_ts
+    # convert to LongTensor
+    for key in splits_dict:
+        splits_dict[key] = torch.LongTensor(splits_dict[key])
+
+    return adj_ts, features_ts, labels_ts, splits_dict
 
 
 def sparse_mx_to_sparse_ts(sparse_mx):
