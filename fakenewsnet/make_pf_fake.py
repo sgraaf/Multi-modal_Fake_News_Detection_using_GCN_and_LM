@@ -3,7 +3,7 @@ import json
 import csv
 import glob
 
-DATA_DIR = os.getcwd() + "/FakeNewsContent/*.json"
+DATA_DIR = os.getcwd() + "/PolitiFactFakeNewsContent/*.json"
 all_fakes_dirs = glob.glob(DATA_DIR)
 with open('../PolitiFact_fake_news_content.csv', 'w') as csv_file:
 	csv_writer = csv.writer(csv_file, delimiter=',')
