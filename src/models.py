@@ -69,15 +69,19 @@ class GraphConvolutionalNetwork(nn.Module):
 
         self.gc1 = GraphConvolution(self.input_dim, self.hidden_dim)
         self.relu = nn.ReLU()
-        self.gc2 = GraphConvolution(self.hidden_dim, self.output_dim)
-        self.log_softmax = nn.LogSoftmax()
+        self.gc2 = GraphConvolution(self.hidden_dim, self.num_classes)
+        self.log_softmax = nn.LogSoftmax(dim=1)
 
     def forward(self, x, adj):
         # forward pass through the first GC
-        out = self.relu(self.gc1(x, adj))
+        out = self.relu(
+            self.gc1(x, adj)
+        )
         # apply dropout
         out = F.dropout(out, p=self.dropout, training=self.training)
         # forward pass through the second GC
-        out = self.log_softmax(self.gc2(out, adj), dim=1)
+        out = self.log_softmax(
+            self.gc2(out, adj)
+        )
         
         return out

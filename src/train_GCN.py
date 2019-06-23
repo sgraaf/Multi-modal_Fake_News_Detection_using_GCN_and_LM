@@ -17,11 +17,11 @@ from utils import (accuracy, create_directories, create_checkpoint, print_flags,
 
 # defaults
 FLAGS = None
-if torch.cuda.is_available():
-    DEVICE = torch.device('cuda')
-    torch.set_default_tensor_type('torch.cuda.FloatTensor')
-else:
-    DEVICE = torch.device('cpu')
+# if torch.cuda.is_available():
+#     DEVICE = torch.device('cuda')
+#     torch.set_default_tensor_type('torch.cuda.FloatTensor')
+# else:
+DEVICE = torch.device('cpu')
 
 SEED = 42
 ROOT_DIR = Path.cwd().parent
@@ -57,18 +57,20 @@ def train():
     adj_file = data_dir / 'adj_matrix.npz'
     features_file = data_dir / 'features_matrix.pkl'
     labels_file = data_dir / 'labels_matrix.pkl'
-    adj, features, labels, splits_dict = load_data(adj_file, features_file, labels_file)
+    splits_file = data_dir / 'splits_dict.pkl'
+    adj, features, labels, splits_dict = load_data(adj_file, features_file, labels_file, splits_file)
     train_idxs = splits_dict['train']
     val_idxs = splits_dict['val']
     test_idxs = splits_dict['test']
     
-    # send to device
-    adj.to(DEVICE)
-    features.to(DEVICE)
-    labels.to(DEVICE)
-    train_idxs.to(DEVICE)
-    val_idxs.to(DEVICE)
-    test_idxs.to(DEVICE)
+    # send to cuda
+    # if torch.cuda.is_available():
+    #     adj.cuda()
+    #     features.cuda()
+    #     labels.cuda()
+    #     train_idxs.cuda()
+    #     val_idxs.cuda()
+    #     test_idxs.cuda()
 
     # initialize the model, according to the model type
     print('Initializing the model...')
@@ -110,8 +112,11 @@ def train():
         output = model(features, adj)
         
         # compute the training loss and accuracy
-        train_loss = criterion(output[train_idxs], labels[train_idxs])
-        train_acc = accuracy(output[train_idxs], labels[train_idxs])
+        # print(output[train_idxs])
+        # print(labels[train_idxs])
+        train_targets = labels[train_idxs].max(dim=1).indices
+        train_loss = criterion(output[train_idxs], train_targets)
+        train_acc = accuracy(output[train_idxs], train_targets)
         
         # backpropogate the loss
         train_loss.backward()
@@ -120,8 +125,9 @@ def train():
         # evaluate
         model.eval()
         output = model(features, adj)
-        val_loss = criterion(output[val_idxs], labels[val_idxs])
-        val_acc = accuracy(output[val_idxs], labels[val_idxs])
+        val_targets = labels[val_idxs].max(dim=1).indices
+        val_loss = criterion(output[val_idxs], val_targets)
+        val_acc = accuracy(output[val_idxs], val_targets)
                 
         # record results
         results['epoch'].append(i)

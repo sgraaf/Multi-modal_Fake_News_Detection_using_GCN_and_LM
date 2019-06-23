@@ -101,7 +101,7 @@ def get_class_balance(data_dir):
     return real_ratio, fake_ratio
 
 
-def create_checkpoint(checkpoints_dir, epoch, model, optimizer, results, best_accuracy):
+def create_checkpoint(checkpoints_dir, epoch, model, optimizer, results):
     """
     Creates a checkpoint for the current epoch
 
@@ -114,14 +114,13 @@ def create_checkpoint(checkpoints_dir, epoch, model, optimizer, results, best_ac
     """
     print('Creating checkpoint...', end=' ')
     epoch += 1
-    checkpoint_path = checkpoints_dir / f'{model.__class__.__name__}_{optimizer.__class__.__name__}_checkpoint_{epoch}_.pt'
+    checkpoint_path = checkpoints_dir / f'{model.__class__.__name__}_{optimizer.__class__.__name__}_checkpoint_{epoch}.pt'
     torch.save(
         {
             'epoch': epoch,
             'model_state_dict': model.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
-            'results': results,
-            'best_accuracy': best_accuracy
+            'results': results
         },
         checkpoint_path
     )
@@ -259,7 +258,7 @@ def create_directories(*args):
         dir.mkdir(parents=True, exist_ok=True)
         
         
-def load_mxs(adj_mx_file, features_mx_file, labels_mx_file, splits_dict_file):
+def load_data(adj_mx_file, features_mx_file, labels_mx_file, splits_dict_file):
     """
     Load and convert matrices.
     Inspired by: https://github.com/tkipf/pygcn/blob/master/pygcn/utils.py
@@ -268,7 +267,7 @@ def load_mxs(adj_mx_file, features_mx_file, labels_mx_file, splits_dict_file):
     print('Loading matrices...')
     
     # load the adjacency matrix
-    print(f'Loading adjacency matrix from file {adj_mx_file.fname}...')
+    print(f'Loading adjacency matrix from file {adj_mx_file.name}...')
     adj_mx_sparse = sp.load_npz(adj_mx_file)
     
     # normalize and convert to FloatTensor
@@ -276,7 +275,7 @@ def load_mxs(adj_mx_file, features_mx_file, labels_mx_file, splits_dict_file):
     adj_ts = sparse_mx_to_sparse_ts(adj_mx_normalize)
     
     # load the features matrix
-    print(f'Loading features matrix from file {features_mx_file.fname}...')
+    print(f'Loading features matrix from file {features_mx_file.name}...')
     features_list = pkl.load(open(features_mx_file, 'rb'))
     features_mx = sp.vstack(features_list)
     
@@ -285,15 +284,15 @@ def load_mxs(adj_mx_file, features_mx_file, labels_mx_file, splits_dict_file):
     features_ts = torch.FloatTensor(np.array(features_mx_normalize.todense()))
     
     # load the labels matrix
-    print(f'Loading labels matrix from file {labels_mx_file.fname}...')
+    print(f'Loading labels matrix from file {labels_mx_file.name}...')
     labels_mx = pkl.load(open(labels_mx_file, 'rb'))
     
     # filter out None and convert to LongTensor
-    labels_mx = [labels_mx[idx] for idx in np.where(labels_mx)[0]]
+    labels_mx = [[0, 0] if label is None else label for label in labels_mx]
     labels_ts = torch.LongTensor(labels_mx)  
     
     # load the splits dict
-    print(f'Loading splits dict from file {splits_dict_file.fname}...')
+    print(f'Loading splits dict from file {splits_dict_file.name}...')
     splits_dict = pkl.load(open(splits_dict_file, 'rb'))
 
     # convert to LongTensor
