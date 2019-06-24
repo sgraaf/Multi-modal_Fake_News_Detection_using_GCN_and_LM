@@ -130,7 +130,7 @@ class DocAttentionRNN(nn.Module):
 class GraphConvolution(nn.Module):
     """
     Simple GCN layer, similar to https://arxiv.org/abs/1609.02907
-    Implementation based on https://github.com/tkipf/pygcn/blob/master/pygcn/layers.py
+    Inspired by: https://github.com/tkipf/pygcn/blob/master/pygcn/layers.py
     """
 
     def __init__(self, input_dim, output_dim, bias=True):
@@ -141,6 +141,7 @@ class GraphConvolution(nn.Module):
         self.weight = nn.Parameter(torch.FloatTensor(self.input_dim, self.output_dim))
         self.bias = nn.Parameter(torch.FloatTensor(self.output_dim))
 
+        # parameter initialization
         self.reset_parameters()
 
     def forward(self, input, adj):
