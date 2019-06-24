@@ -18,7 +18,7 @@ SEED = 42
 np.random.seed(SEED)
 torch.manual_seed(SEED)
 
-ROOT_DIR = Path.cwd()
+ROOT_DIR = Path.cwd().parent
 DATA_DIR = ROOT_DIR / 'data'
 CHECKPOINTS_DIR = ROOT_DIR / 'output' / 'checkpoints'
 MODELS_DIR = ROOT_DIR / 'output' / 'models'
