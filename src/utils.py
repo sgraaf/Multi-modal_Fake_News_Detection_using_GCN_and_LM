@@ -204,6 +204,18 @@ def save_model(models_dir, model):
     print('Done!')
 
 
+def load_model(model_file, model):
+    """
+    Loads the model.
+
+    :param pathlib.Path model_file: the path of the model
+    :param nn.Module model: the model
+    """
+    print('Loading the model...', end=' ')
+    model.load_state_dict(torch.load(model_file))
+    print('Done!')
+
+
 def save_results(results_dir, results, model):
     """
     Saves the results in the specified directory
