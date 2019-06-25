@@ -85,3 +85,13 @@ class GraphConvolutionalNetwork(nn.Module):
         )
         
         return out
+    
+    def get_embeddings(self, x, adj):
+        # forward pass through the first GC
+        out = self.relu(
+            self.gc1(x, adj)
+        )
+        # apply dropout
+        out = F.dropout(out, p=self.dropout, training=self.training)
+        
+        return out

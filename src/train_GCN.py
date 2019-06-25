@@ -17,10 +17,6 @@ from utils import (accuracy, create_directories, create_checkpoint, print_flags,
 
 # defaults
 FLAGS = None
-# if torch.cuda.is_available():
-#     DEVICE = torch.device('cuda')
-#     torch.set_default_tensor_type('torch.cuda.FloatTensor')
-# else:
 DEVICE = torch.device('cpu')
 
 SEED = 42
@@ -62,15 +58,6 @@ def train():
     train_idxs = splits_dict['train']
     val_idxs = splits_dict['val']
     test_idxs = splits_dict['test']
-    
-    # send to cuda
-    # if torch.cuda.is_available():
-    #     adj.cuda()
-    #     features.cuda()
-    #     labels.cuda()
-    #     train_idxs.cuda()
-    #     val_idxs.cuda()
-    #     test_idxs.cuda()
 
     # initialize the model, according to the model type
     print('Initializing the model...')
@@ -80,7 +67,7 @@ def train():
             num_classes=labels.max().item() + 1,  
             dropout=DROPOUT
     ).to(DEVICE)
-    print_model_parameters(model)
+    # print_model_parameters(model)
 
     # set the criterion and optimizer
     print('Initializing the criterion and optimizer')
@@ -100,11 +87,11 @@ def train():
             'val_acc': []
     }    
 
-    print(f'Starting training at epoch 0...')
+    print(f'Starting training at epoch 1...')
     for i in range(0, MAX_EPOCHS):
-        print(f'Epoch {i:0{len(str(MAX_EPOCHS))}}/{MAX_EPOCHS}:')
         st = time()
         
+        # train
         model.train()
         optimizer.zero_grad()
         
@@ -112,8 +99,6 @@ def train():
         output = model(features, adj)
         
         # compute the training loss and accuracy
-        # print(output[train_idxs])
-        # print(labels[train_idxs])
         train_targets = labels[train_idxs].max(dim=1).indices
         train_loss = criterion(output[train_idxs], train_targets)
         train_acc = accuracy(output[train_idxs], train_targets)
@@ -132,20 +117,30 @@ def train():
         # record results
         results['epoch'].append(i)
         results['train_loss'].append(train_loss.item())        
-        results['train_acc'].append(train_acc)
+        results['train_acc'].append(train_acc.item())
         results['val_loss'].append(val_loss.item())
-        results['val_acc'].append(val_acc)
+        results['val_acc'].append(val_acc.item())
         
         # print update
-        print(f'Epoch: {i:02d} Train loss: {train_loss.item():0.4f} Train acc: {train_acc:0.4f} Val loss: {val_loss.item():0.4f} Val acc: {val_acc:0.4f} done in {time() - st} s')
+        print(f'Epoch: {i+1:02d} Train loss: {train_loss.item():0.4f} Train acc: {train_acc:0.4f} Val loss: {val_loss.item():0.4f} Val acc: {val_acc:0.4f} done in {time() - st} s')
 
         # create a checkpoint
         create_checkpoint(checkpoints_dir, i, model, optimizer, results)
 
+    # test
+    model.eval()
+    output = model(features, adj)
+    test_targets = labels[test_idxs].max(dim=1).indices
+    test_loss = criterion(output[test_idxs], test_targets)
+    test_acc = accuracy(output[test_idxs], test_targets)
+
+    # record results
+    results['test_loss'] = test_loss.item()
+    results['test_acc'] = test_acc.item()
+    
     # save the model and results
     save_model(models_dir, model)
     save_results(results_dir, results, model)
-
 
 
 def main():
