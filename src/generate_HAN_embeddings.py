@@ -149,15 +149,18 @@ def test():
         print('Uploaded Elmo embeddings.')
     input_dim = glove_dim + elmo_dim
     # get the fnn and snli data
-
-    FNN_small = FNNDataset(data_dir / ('FNN_small.pkl'), GloVe_vectors, ELMo)
-    FNN_DL_small = data.DataLoader(
-                dataset=FNN_small,
-                batch_size=BATCH_SIZE_FN,
-                num_workers=0,
-                shuffle=True,
-                drop_last=True,
-                collate_fn=PadSortBatchFNN())
+    keys = ['train', 'test', 'val']
+    FNN_DL_small = {}
+    for i in keys:
+        FNN_temp = FNNDataset(data_dir / ('FNN_small_' + i + '.pkl'), GloVe_vectors, ELMo)
+        FNN_DL_temp = data.DataLoader(
+                    dataset=FNN_temp,
+                    batch_size=BATCH_SIZE_FN,
+                    num_workers=0,
+                    shuffle=True,
+                    drop_last=True,
+                    collate_fn=PadSortBatchFNN())
+        FNN_DL_small[i] = FNN_DL_temp
     print('Uploaded FNN data.')
 
     print('Initializing the model...', end=' ')
@@ -192,20 +195,12 @@ def test():
     loss_func_fn = nn.CrossEntropyLoss()
     #y_pred = []
     #y_true = []
-    all_embeds = []
-    for step, batch in enumerate(FNN_DL_small):       
-        embeds = get_article_embeddings(model, batch)
-        all_embeds.append(embeds[0])
-        #articles, article_dims, labels = batch
-        #out = model(batch=articles, batch_dims=article_dims)
-        #y_pred.append(out.argmax(dim=1).to(DEVICE).item())
-        #y_true.append(labels.to(DEVICE).item())
-        #if step % 100 == 0 and step != 0:
-            #print(sklearn.metrics.precision_recall_fscore_support(y_true, y_pred, average=None))
-    #print(sklearn.metrics.precision_recall_fscore_support(y_true, y_pred, average='micro'))
-    #print(sklearn.metrics.precision_recall_fscore_support(y_true, y_pred, average='macro'))
-    #print(sklearn.metrics.precision_recall_fscore_support(y_true, y_pred, average=None))
-    pkl.dump(all_embeds, open(data_dir / 'FNN_small_embeds.pkl', 'wb'))
+    for split in keys:
+        all_embeds = []
+        for step, batch in enumerate(FNN_DL_small[split]):       
+            embeds = get_article_embeddings(model, batch)
+            all_embeds.append(embeds[0])
+        pkl.dump(all_embeds, open(data_dir / ('FNN_small_embeds_' + model_type + '_' + split + '.pkl'), 'wb'))
 
 
 if __name__ == '__main__':
