@@ -351,3 +351,18 @@ def accuracy(output, labels):
     correct = correct.sum()
     
     return correct / len(labels)
+
+
+def get_user_embeddings(embeddings, adj, idxs):
+    # convert adj to dense
+    adj_dense = adj.to_dense()
+    
+    # build list of user embeddings
+    user_embeddings = []
+    for idx in idxs:
+        user_idxs = adj_dense[idx].nonzero()
+        user_embeds = embeddings[user_idxs].squeeze(dim=1)
+        user_embeddings.append(user_embeds.tolist())
+    
+    return user_embeddings
+    
