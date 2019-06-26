@@ -37,7 +37,7 @@ from models import HierarchicalAttentionNet
 from utils import (create_directories, load_latest_checkpoint, plot_results,
                    print_dataset_sizes, print_flags, print_model_parameters,
                    save_model, save_results, create_checkpoint, get_number_sentences,
-                   get_class_balance)
+                   get_class_balance, load_checkpoint)
 
 # defaults
 FLAGS = None
@@ -66,6 +66,7 @@ CHECKPOINTS_DIR_DEFAULT = ROOT_DIR / 'output' / 'checkpoints'
 MODELS_DIR_DEFAULT = ROOT_DIR / 'output' / 'models'
 RESULTS_DIR_DEFAULT = ROOT_DIR / 'output' / 'results'
 RUN_DESC_DEFAULT = None
+RUN_DESC_TL_DEFAULT = None
 
 ELMO_DIR = Path().cwd().parent / 'data' / 'elmo'
 ELMO_OPTIONS_FILE = ELMO_DIR / 'elmo_2x4096_512_2048cnn_2xhighway_5.5B_options.json'
@@ -106,11 +107,17 @@ def eval_epoch_fn(val_iter, model, loss_func_fn):
 def train():
     model_type = FLAGS.model_type
     run_desc = FLAGS.run_desc
+    run_desc_tl = FLAGS.run_desc_tl
     data_dir = Path(FLAGS.data_dir)
     checkpoints_dir = Path(FLAGS.checkpoints_dir) / model_type / run_desc
     models_dir = Path(FLAGS.models_dir) / model_type / run_desc
     results_dir = Path(FLAGS.results_dir) / model_type / run_desc
-    learning_rate = LEARNING_RATE
+    checkpoints_dir_tl = Path(FLAGS.checkpoints_dir) / model_type / run_desc_tl
+    models_dir_tl = Path(FLAGS.models_dir) / model_type / run_desc_tl
+    results_dir_tl = Path(FLAGS.results_dir) / model_type / run_desc_tl
+    learning_rate = FLAGS.learning_rate
+    batch_size_fn = FLAGS.batch_size
+    epoch_no = FLAGS.epoch
     sent_hidden_dim = FLAGS.sent_hidden_dim
     doc_hidden_dim = FLAGS.doc_hidden_dim
 
@@ -118,7 +125,7 @@ def train():
         raise ValueError('Data directory does not exist')
     
     # create other directories if they do not exist
-    create_directories(checkpoints_dir, models_dir, results_dir)
+    create_directories(checkpoints_dir_tl, models_dir_tl, results_dir_tl)
     
     # load the data
     print('Loading the data...')
@@ -143,68 +150,62 @@ def train():
         print('Uploaded Elmo embeddings.')
     input_dim = glove_dim + elmo_dim
     # get the fnn and snli data
-    FNN = {}
-    FNN_DL = {}
-
-    for path in ['train', 'val', 'test']:
-        FNN[path] = FNNDataset(data_dir / ('FNN_' + path + '.pkl'), GloVe_vectors, ELMo)
-        FNN_DL[path] = data.DataLoader(
-                dataset=FNN[path],
-                batch_size=BATCH_SIZE_FN,
-                num_workers=0,
-                shuffle=True,
-                drop_last=True,
-                collate_fn=PadSortBatchFNN())
+    keys = ['train', 'test', 'val']
+    FNN_DL_small = {}
+    for i in keys:
+        FNN_temp = FNNDataset(data_dir / ('FNN_small_' + i + '.pkl'), GloVe_vectors, ELMo)
+        FNN_DL_temp = data.DataLoader(
+                    dataset=FNN_temp,
+                    batch_size=batch_size_fn,
+                    num_workers=0,
+                    shuffle=True,
+                    drop_last=True,
+                    collate_fn=PadSortBatchFNN())
+        FNN_DL_small[i] = FNN_DL_temp
     print('Uploaded FNN data.')
     
-    fnn_train_sent_no = get_number_sentences(data_dir / 'FNN_train.pkl')
-    fnn_train_len = len(FNN['train'])
-
-
     # initialize the model, according to the model type
-    print('Initializing the model...', end=' ')
+    print('Initializing the model for transfer learning...', end=' ')
     
     model = HierarchicalAttentionNet(input_dim=input_dim , 
                                      sent_hidden_dim=sent_hidden_dim,
                                      doc_hidden_dim=doc_hidden_dim, 
                                      num_classes=NUM_CLASSES_FN,  
                                      dropout=0).to(DEVICE)
-    print('Working on: ', end='')
-    print(DEVICE)
     print('Done!')
     print_model_parameters(model)
     print()
-
+    print('Working on: ', end='')
+    print(DEVICE)
+    
     # set the criterion and optimizer
     # we weigh the loss: class [0] is real, class [1] is fake
     # 
-    real_ratio, fake_ratio = get_class_balance(data_dir / 'FNN_train.pkl')
-    weights = [(1.0 - real_ratio), (1.0- fake_ratio)]
-    print(weights)
-    class_weights = torch.FloatTensor(weights).to(DEVICE)
-    loss_func_fn = nn.CrossEntropyLoss(weight=class_weights)
+    loss_func_fn = nn.CrossEntropyLoss()
     optimizer = optim.Adam(
                 params=model.parameters(),
-                lr=LEARNING_RATE)        
+                lr=learning_rate)        
     
     # load the last checkpoint (if it exists)
     results = {'epoch':[], 'train_loss':[], 'train_accuracy':[], 'val_loss':[], 'val_accuracy': []}
-    epoch, results, best_accuracy = load_latest_checkpoint(checkpoints_dir, model, optimizer)
-    if epoch == 0:
-        print(f'Starting training at epoch {epoch + 1}...')
+    if epoch_no == '0':
+        model_path = models_dir / Path('HierarchicalAttentionNet_model.pt')
+        _, _, _ = load_latest_checkpoint(model_path, model, optimizer)
     else:
-        print(f'Resuming training from epoch {epoch + 1}...')
-
+        checkpoint_path = checkpoints_dir / Path('HierarchicalAttentionNet_Adam_checkpoint_' + str(epoch_no) + '_.pt')
+        _, _, _ = load_checkpoint(checkpoint_path, model, optimizer)
+    print(f'Starting transfer learning on the model extracted from {epoch_no}')
+    epoch = 0
     for i in range(epoch, MAX_EPOCHS):
         print(f'Epoch {i+1:0{len(str(MAX_EPOCHS))}}/{MAX_EPOCHS}:')
         model.train()
         # one epoch of training
-        train_loss_fn, train_acc_fn = train_epoch_fn(FNN_DL['train'], model, 
+        train_loss_fn, train_acc_fn = train_epoch_fn(FNN_DL_small['train'], model, 
                                                    optimizer, loss_func_fn)
 
         # one epoch of eval
         model.eval()
-        val_loss_fn, val_acc_fn = eval_epoch_fn(FNN_DL['val'], model, 
+        val_loss_fn, val_acc_fn = eval_epoch_fn(FNN_DL_small['val'], model, 
                                               loss_func_fn)
         
         results['epoch'].append(i)
@@ -214,17 +215,11 @@ def train():
         results['val_accuracy'].append(val_acc_fn)
         #print(results)
         best_accuracy = torch.tensor(val_acc_fn).max().item()
-        create_checkpoint(checkpoints_dir, i, model, optimizer, results, best_accuracy)
-        if (i+1) % 4 == 0 and i != 0:
-            learning_rate = learning_rate / 2
-            optimizer = optim.Adam(
-                    params=model.parameters(),
-                    lr=learning_rate)
-
+        create_checkpoint(checkpoints_dir_tl, i, model, optimizer, results, best_accuracy)
 
     # save and plot the results
-    save_results(results_dir, results, model)
-    save_model(models_dir, model)
+    save_results(results_dir_tl, results, model)
+    save_model(models_dir_tl, model)
     #plot_results(results_dir, results, model)
 
 
@@ -244,7 +239,7 @@ def main():
     elapsed = end_time - start_time
     minutes = int(elapsed // 60)
     seconds = int(elapsed % 60)
-    print(f'Done training in {minutes}:{seconds} minutes.')
+    print(f'Done transfer learning in {minutes}:{seconds} minutes.')
 
 
 if __name__ == '__main__':
@@ -262,11 +257,18 @@ if __name__ == '__main__':
                         help='Path of directory to store results')
     parser.add_argument('--run_desc', type=str, default=RUN_DESC_DEFAULT,
                         help='Run description, used to generate the subdirectory title')
+    parser.add_argument('--run_desc_tl', type=str, default=RUN_DESC_TL_DEFAULT,
+                        help='Run description, used to generate the subdirectory title for transfer learning')
+    parser.add_argument('--epoch', type=str, default=None,
+                        help='Which epoch to select')
     parser.add_argument('--sent_hidden_dim', type=int, default=SENT_HIDDEN_DIM,
                         help='Dimensionality of sentence embeddings')
     parser.add_argument('--doc_hidden_dim', type=int, default=DOC_HIDDEN_DIM,
                         help='Dimensionality of document embeddings')
-
+    parser.add_argument('--learning_rate', type=float, default=LEARNING_RATE,
+                        help='Learning rate for transfer learning')
+    parser.add_argument('--batch_size', type=int, default=BATCH_SIZE_FN,
+                        help='Batch size for transfer learning')
     FLAGS, unparsed = parser.parse_known_args()
 
     main()

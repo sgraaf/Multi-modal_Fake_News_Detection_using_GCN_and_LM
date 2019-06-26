@@ -33,7 +33,6 @@ def generate_feature_label_matrix(adj_dir, map_adj_dir, data_dir, no_users=35322
     adj_keys = {}
     with open(DICT_DIR, 'r') as f:
         for idx, x in enumerate(f):
-            print(x)
             adj_keys[idx] = str(x).replace('\n','')
     inv_adj_keys = {v: k for k, v in adj_keys.items()}
 

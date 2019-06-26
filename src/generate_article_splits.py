@@ -86,29 +86,3 @@ for key in splits.keys():
 	FNN_small_dir = ARTICLE_DIR / ('FNN_small_' + key + '.pkl')
 	pkl.dump(splits[key], open(FNN_small_dir, 'wb'))
 
-
-
-
-"""
-texts = {'buzz':[], 'pol':[]}
-all_texts = []
-for id_outlet, text_outlet in enumerate([bf_dirs, pf_dirs]):
-temp_texts = []    
-for dir_idx, dir_path in enumerate(text_outlet):
-label = dir_idx
-with open(DATA_DIR + dir_path, 'r') as f:
-reader = csv.reader(f)
-for idx, x in enumerate(reader):
-if idx == 0:
-continue
-if id_outlet == 0:
-idx = bf_ids['BuzzFeed_' + str(x[0]).replace('\n','').replace('-Webpage','')]
-elif id_outlet == 1:
-idx = pf_ids['PolitiFact_' + str(x[0]).replace('\n','').replace('-Webpage','')]
-temp_texts.append([idx, x[1] + ' ' + x[2], label])
-all_texts.append(x[1] + str(x[2].split('\n')[0]))
-if id_outlet == 0:
-texts['buzz'] = temp_texts.copy()
-else:
-texts['pol'] = temp_texts.copy()
-"""
