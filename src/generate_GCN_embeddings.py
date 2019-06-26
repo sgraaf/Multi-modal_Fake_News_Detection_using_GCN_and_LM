@@ -63,10 +63,10 @@ train_article_embeds = output[train_idxs].tolist()
 val_article_embeds = output[val_idxs].tolist()
 test_article_embeds = output[test_idxs].tolist()
 
-all_article_embeds_file = RESULTS_DIR / 'GCN_all_article_embeds_pre_ReLU.pkl'
-train_article_embeds_file = RESULTS_DIR / 'GCN_train_article_embeds_pre_ReLU.pkl'
-val_article_embeds_file = RESULTS_DIR / 'GCN_val_article_embeds_pre_ReLU.pkl'
-test_article_embeds_file = RESULTS_DIR / 'GCN_test_article_embeds_pre_ReLU.pkl'
+all_article_embeds_file = RESULTS_DIR / 'GCN_all_article_embeds.pkl'
+train_article_embeds_file = RESULTS_DIR / 'GCN_train_article_embeds.pkl'
+val_article_embeds_file = RESULTS_DIR / 'GCN_val_article_embeds.pkl'
+test_article_embeds_file = RESULTS_DIR / 'GCN_test_article_embeds.pkl'
 
 pkl.dump(all_article_embeds, open(all_article_embeds_file, 'wb'))
 pkl.dump(train_article_embeds, open(train_article_embeds_file, 'wb'))
@@ -79,10 +79,10 @@ train_user_embeds = get_user_embeddings(output, adj, train_idxs)
 val_user_embeds = get_user_embeddings(output, adj, val_idxs)
 test_user_embeds = get_user_embeddings(output, adj, test_idxs)
 
-all_user_embeds_file = RESULTS_DIR / 'GCN_all_user_embeds_pre_ReLU.pkl'
-train_user_embeds_file = RESULTS_DIR / 'GCN_train_user_embeds_pre_ReLU.pkl'
-val_user_embeds_file = RESULTS_DIR / 'GCN_val_user_embeds_pre_ReLU.pkl'
-test_user_embeds_file = RESULTS_DIR / 'GCN_test_user_embeds_pre_ReLU.pkl'
+all_user_embeds_file = RESULTS_DIR / 'GCN_all_user_embeds.pkl'
+train_user_embeds_file = RESULTS_DIR / 'GCN_train_user_embeds.pkl'
+val_user_embeds_file = RESULTS_DIR / 'GCN_val_user_embeds.pkl'
+test_user_embeds_file = RESULTS_DIR / 'GCN_test_user_embeds.pkl'
 
 pkl.dump(all_user_embeds, open(all_user_embeds_file, 'wb'))
 pkl.dump(train_user_embeds, open(train_user_embeds_file, 'wb'))
