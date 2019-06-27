@@ -1,0 +1,30 @@
+Team member contributions, Project AI 2019
+
+Note: all the work done for writing the code for the HAN model has been done before the start of the Project AI course, during the Statistical Methods for Natural Language Semantics under the supervision of Dr. Shutova
+
+Equal contribution:
+- Regular meetings and discussions, both within the team and with Dr. Shutova
+- Discussing the architecture of the GCN and Multi-Modal models
+- Makign design choices regarding the GCN, HAN and combined Multi-Modal models
+
+Azamat Omuraliev. 12057398
+- Adjusting, retraining and fitting the Hierarchichal Attention Network (HAN):
+-- Training the Glove, Elmo and Glove+Elmo based HAN model on the original FNN dataset (20k samples)
+-- Evaluating the Glove, Elmo and Glove+Elmo based HAN models
+-- Reducing dimensionality of HAN model article embeddings for the Multi-Modal model
+-- Transfer learning of the HAN model pre-trained on large FNN dataset (20k samples) towards the smaller Twitter-based dataset (400 samples)
+-- Visualizing results of HAN performance on the smaller dataset
+
+- Pre-processing the Twitter-based dataset for the Graph Convolutional Network (GCN):
+-- Generating the feature and label matrices for the graph (including nodes and articles)
+-- Creating representations of articles and users for the graph
+
+- Poster
+-- Writing the Discussion section
+
+- Paper
+-- 
+
+Michal Nauman, 
+
+Steven van de Graaf, 
