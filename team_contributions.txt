@@ -25,7 +25,7 @@ Azamat Omuraliev. 12057398
 - Paper
 -- Writing the Abstract, Methodology (HAN/GCN), Discussion and part of the Experiments section 
 
-Michal Nauman, 
+Michal Nauman 11087501
 - Working on the late fusion model
 -- Training various ensemble classifiers (nn; lgb; logreg) on two validation schemes (split; kfold) with grid search
 -- Testing different feature bootstrap mechanisms for the case with n features > n samples
