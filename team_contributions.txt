@@ -23,8 +23,23 @@ Azamat Omuraliev. 12057398
 -- Writing the Discussion section
 
 - Paper
--- Writing the Abstract, Methodology, Discussion and part of the Experiments section 
+-- Writing the Abstract, Methodology (HAN/GCN), Discussion and part of the Experiments section 
 
 Michal Nauman, 
+- Working on the late fusion model
+-- Training various ensemble classifiers (nn; lgb; logreg) on two validation schemes (split; kfold) with grid search
+-- Testing different feature bootstrap mechanisms for the case with n features > n samples
+-- Testing various pooling schemes for user embeddings (avg vs max)
+-- Evaluating final models; visualization of AUC
+
+- Pre-processing the Twitter-based dataset for the Graph Convolutional Network (GCN):
+-- Creating representations of articles and users for the graph
+-- Generating adjacency matrix
+
+- Poster
+-- Writing the Results section
+
+- Paper
+-- Writing the Methodology (GCN/ensemble), Experiments (Data) and Results sections
 
 Steven van de Graaf, 
